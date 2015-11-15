@@ -25,7 +25,7 @@ python setup.py install
 * Start both Analysis and Visualization by a single convenience script at root dir called "run.py" (should be started
 with the same device id, name, rabbitmq params as above)
 ```
-  python run.py -i octopicorn -c localhost -n openbci
+  python {CloudbrainAnalysis path}/run.py -i octopicorn -c localhost -n openbci
 ```
 * Point your web browser to http://localhost:9999/index.html - Currently the eeg/flot is the only demo working
 * Ctrl-C to stop analysis process & viz server
@@ -107,14 +107,15 @@ want to see and click "connect" to start streaming it.  The actual websocket con
 
 
 ## Run Analysis and Visualization in One Call
-You can start both processes by a convenience script at root dir called "run.py"
+Sometimes, you might prefer to start/stop the AnalysisService.py and VisualizationServer.py in their own separate 
+terminal window, and this is supported.  However, for convenience, most people will want to start/stop both at once.
+You can start both processes by a script at root dir called "run.py"
 ```
-python run.py -i octopicorn -c localhost -n openbci
+python {CloudbrainAnalysis path}/run.py -i octopicorn -c localhost -n openbci
 ```
-
 In the future, this will likely be the preferred method, since visualization and analysis will share certain startup
-variablse, like device name and id, not to mention, they will probably also be pulling from a common config file. At
-present, the config file "conf.yml" is only used in the AnalysisModules folder.
+variables, like *device name* and *device id*, not to mention, they will probably also be pulling from a common config 
+file. At present, the config file **conf.yml** is only used in the AnalysisModules folder.
 
 
 ### To Do
