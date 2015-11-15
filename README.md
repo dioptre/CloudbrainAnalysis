@@ -11,8 +11,10 @@ This a very early rough draft. Here's what we have so far:
 2. tornado
 
 ## Installation
-Install using normal procedure::
-  python setup.py install
+Install using normal procedure
+'''
+python setup.py install
+'''
 
 ## Quickstart
 1. make sure you have a device connector streaming live data (mock connector example give)::
