@@ -7,8 +7,8 @@ This a very early rough draft. Here's what we have so far:
 
 ## Prerequisites
 
-1. cloudbrain [https://github.com/marionleborgne/cloudbrain]
-2. tornado
+1. cloudbrain https://github.com/marionleborgne/cloudbrain
+2. tornado http://www.tornadoweb.org
 
 ## Installation
 Install using normal procedure
@@ -17,12 +17,16 @@ python setup.py install
 ```
 
 ## Quickstart
-1. make sure you have a device connector streaming live data (mock connector example give)::
-  python {cloudbrain path}/cloudbrain/publishers/sensor_publisher.py --mock -n openbci -i octopicorn -c localhost -p 99
+1. make sure you have a device connector streaming live data (mock connector example give)
+```
+python {cloudbrain path}/cloudbrain/publishers/sensor_publisher.py --mock -n openbci -i octopicorn -c localhost -p 99
+```
 
 2. Start both Analysis and Visualization by a single convenience script at root dir called "run.py" (should be started
-with the same device id, name, rabbitmq params as above)::
-  python run.py -i octopicorn -c localhost -n openbci
+with the same device id, name, rabbitmq params as above)
+```
+python run.py -i octopicorn -c localhost -n openbci
+```
 
 3. Point your web browser to http://localhost:9999/index.html - Currently the eeg/flot is the only demo working
 
@@ -93,12 +97,14 @@ worked on.  Only the flot example works, though the chartjs examples should be c
 
 ## Visualizations Demo
 ----------------------
-1. assuming you're running a mock connector as specified in step 1 above, you can start your server by::
-  python {CloudbrainAnalysis path}/Viz/VisualizationServer.py
+1. assuming you're running a mock connector as specified in step 1 above, you can start your server by
+```
+python {CloudbrainAnalysis path}/Viz/VisualizationServer.py
+```
 
-2. open your browser and visit the path you want, relative to the www folder, like this::
-  http://localhost:9999/index.html
-  (only working demo for now is the flot eeg)
+2. open your browser and visit the path you want, relative to the www folder, like this
+http://localhost:9999/index.html
+(only working demo for now is the flot eeg)
 
 3. the "eeg" metric should work if you have mock connector streaming.  if you also have analysis modules running, with
 the downsample module output, then the "eegd" metric should work as well.  The basic idea is that you pick the metric you
@@ -107,8 +113,10 @@ want to see and click "connect" to start streaming it.  The actual websocket con
 
 ## Run Analysis and Visualization in One Call
 ---------------------------------------------
-You can start both processes by a convenience script at root dir called "run.py"::
-  python run.py -i octopicorn -c localhost -n openbci
+You can start both processes by a convenience script at root dir called "run.py"
+```
+python run.py -i octopicorn -c localhost -n openbci
+```
 
 In the future, this will likely be the preferred method, since visualization and analysis will share certain startup
 variablse, like device name and id, not to mention, they will probably also be pulling from a common config file. At
