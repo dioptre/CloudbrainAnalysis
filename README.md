@@ -17,26 +17,22 @@ python setup.py install
 ```
 
 ## Quickstart
-1. make sure you have a device connector streaming live data (mock connector example give)
+* make sure you have a device connector streaming live data
+(mock connector example given)
 ```
-python {cloudbrain path}/cloudbrain/publishers/sensor_publisher.py --mock -n openbci -i octopicorn -c localhost -p 99
+  python {cloudbrain path}/cloudbrain/publishers/sensor_publisher.py --mock -n openbci -i octopicorn -c localhost -p 99
 ```
-
-2. Start both Analysis and Visualization by a single convenience script at root dir called "run.py" (should be started
+* Start both Analysis and Visualization by a single convenience script at root dir called "run.py" (should be started
 with the same device id, name, rabbitmq params as above)
 ```
-python run.py -i octopicorn -c localhost -n openbci
+  python run.py -i octopicorn -c localhost -n openbci
 ```
-
-3. Point your web browser to http://localhost:9999/index.html - Currently the eeg/flot is the only demo working
-
-4. Ctrl-C to stop analysis process & viz server
-
-5. Edit analysis processing chain and parameters by modifying AnalysisModules/conf.yml You can try commenting out
+* Point your web browser to http://localhost:9999/index.html - Currently the eeg/flot is the only demo working
+* Ctrl-C to stop analysis process & viz server
+* Edit analysis processing chain and parameters by modifying AnalysisModules/conf.yml You can try commenting out
 module blocks to turn them on or off. Set debug to True to see live output from command line.
 
 ## Analysis Modules Overview
--------------------------
 In the folder "AnalysisModules", find the conf.yml.  This file is used to set a processing chain of analysis modules,
 defining the order, names of input and output metrics, and any special params used by each module.
 
@@ -52,18 +48,18 @@ Some limitations to be aware of:
 - there are some random things hardcoded
 
 ## Analysis Modules Demo
----------------------
-1. start streaming data using cloudbrain with a mock openbci (assumes you're running rabbitmq locally)::
-  python {cloudbrain path}/cloudbrain/publishers/sensor_publisher.py --mock -n openbci -i octopicorn -c localhost -p 99
-
-2. start the analysis modules script in a separate terminal window, using same device id and rabbitmq host::
-  python {CloudbrainAnalysis path}/AnalysisModules/AnalysisService.py -i octopicorn -c localhost -n openbci
-
+* start streaming data using cloudbrain with a mock openbci (assumes you're running rabbitmq locally)
+```
+python {cloudbrain path}/cloudbrain/publishers/sensor_publisher.py --mock -n openbci -i octopicorn -c localhost -p 99
+```
+* start the analysis modules script in a separate terminal window, using same device id and rabbitmq host
+```
+python {CloudbrainAnalysis path}/AnalysisModules/AnalysisService.py -i octopicorn -c localhost -n openbci
+```
 If debug is on for a given module, it should output to command line.
 
 
 ## Visualizations Overview
------------------------
 This is very rough.  Under the folder "Viz", there are demos, intended to show a chart visualization per metric/module, per library.
 For example, starting with raw eeg, there will be an example using libraries flot, chart.js v1.0, chart.js v2.0,
 rickshaw, and other libraries.
@@ -96,7 +92,6 @@ The current limitations are so many it's not wort listing out.  Only basic eeg a
 worked on.  Only the flot example works, though the chartjs examples should be close.
 
 ## Visualizations Demo
-----------------------
 1. assuming you're running a mock connector as specified in step 1 above, you can start your server by
 ```
 python {CloudbrainAnalysis path}/Viz/VisualizationServer.py
@@ -112,7 +107,6 @@ want to see and click "connect" to start streaming it.  The actual websocket con
 
 
 ## Run Analysis and Visualization in One Call
----------------------------------------------
 You can start both processes by a convenience script at root dir called "run.py"
 ```
 python run.py -i octopicorn -c localhost -n openbci
@@ -123,16 +117,14 @@ variablse, like device name and id, not to mention, they will probably also be p
 present, the config file "conf.yml" is only used in the AnalysisModules folder.
 
 
-To Do
------
+### To Do
 - establish a convention for modules to specify what kinds of visualization they are compatible with.
 - establish a convention whereby, if any module in configuration has specified a visualization component, the
 visualization server will be auto-started
 - conf.yml should be default only, but can be overriden by incoming command line option
 - conf.yml should be used by both analysis and viz server
 
-Metrics To Be Implemented
--------------------------
+### Metrics To Be Implemented
 - downsample using a good algorithm (lttb found in utils folder)
 - bandpass filter
 - fft
