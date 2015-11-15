@@ -1,0 +1,61 @@
+<!doctype html>
+<html><head>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="http://cdn.jsdelivr.net/sockjs/0.3/sockjs.min.js"></script>
+    <script language="javascript" type="text/javascript" src="/lib/flot/jquery.flot.js"></script>
+    <script language="javascript" type="text/javascript" src="/lib/flot/jquery.flot.canvas.js"></script>
+    <script src="/multiplex.js"></script>
+    <script src="main.js"></script>
+    <style>
+        .hidden { display: none;}
+      .box {
+          width: 300px;
+          float: left;
+          margin: 0 20px 0 20px;
+      }
+      .box div, .box input {
+          border: 1px solid;
+          -moz-border-radius: 4px;
+          border-radius: 4px;
+          width: 100%;
+          padding: 0px;
+          margin: 5px;
+      }
+      .box div {
+          border-color: grey;
+          height: 300px;
+          overflow: auto;
+      }
+      .box input {
+          height: 30px;
+      }
+      h1 {
+          margin-left: 75px;
+      }
+      body {
+          background-color: #F0F0F0;
+          font-family: "Arial";
+      }
+    </style>
+<head>
+<body lang="en">
+    <h1>EEG Demo with Flot</h1>
+    <div class="demo-container">
+        <div id="placeholder" class="demo-placeholder" style="width:1200px;height:300px"></div>
+    </div>
+
+    <!-- metric channel container -->
+    <div id="first" class="box chartContainer">
+        <select class="metricSelect">
+            <option value="eeg" selected="selected">eeg</option>
+            <option value="eegd" >eegd</option>
+        </select>
+        <!-- connection buttons -->
+        <button class="connect">connect</button><button class="disconnect">disconnect</button>
+        <br/>
+        <button class="one_more">one more data</button>
+     |  <button class="start_auto">auto</button> <button class="stop_auto hidden">stop</button>
+    </div>
+    <!-- -->
+
+</body></html>
