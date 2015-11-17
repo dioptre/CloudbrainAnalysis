@@ -132,15 +132,17 @@ Suppose that, for an EEG system with output resolution of 250Hz, you have 3 elec
 of data from this system.  Since our system is 250Hz, or 250 readings per second, this means we have 250 readings x
 3 channels.  By using a matrix, this will be represented as a grid. We have two choices:
 
-##### 250 x 3 matrix (example 1)
-|time |0 | 1| 2| 3| 4| 5| 6| 7| 8| 9|...|
-|-----|--|--|--|--|--|--|--|--|--|--|---|
+##### Example 1
+##### 250 x 3 matrix 
+|time |0  |1  |2  |3  |4  |5  |6  |7  |8  |9  |...|
+|-----|---|---|---|---|---|---|---|---|---|---|---|
 |Fz   |0.1|0.2|0.3|0.4|0.5|0.6|0.7|0.8|0.9|1.0|...|
 |C3   |0.0|0.2|0.4|0.6|0.8|1.0|1.2|1.4|1.6|1.8|...|
 |C4   |0.3|0.6|0.9|1.2|1.5|1.8|2.1|2.4|2.7|3.0|...|
 
 
-##### 3 x 250 matrix (example 2)
+##### Example 2 
+##### 3 x 250 matrix
 |time |Fz | C3| C4|
 |-----|---|---|---|
 |0    |0.1|0.0|0.3|
