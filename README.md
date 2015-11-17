@@ -118,6 +118,58 @@ variables, like *device name* and *device id*, not to mention, they will probabl
 file. At present, the config file **conf.yml** is only used in the AnalysisModules folder.
 
 
+## Data Representation
+For calculations on EEG data, we will follow the machine learning conventions of "vector" and "matrix".  For anyone
+new to this field, it's helpful to know that a *vector* is simply an array. And a *matrix* is an array of arrays.
+
+Specifically, in EEG data, all of the data coming from a single electrode is considered an array of voltage values over
+time, or a *vector* containing time-series data for that electrode.  Each electrode, or "channel", is represented as a
+vector of voltage readings.
+
+When you have more than one electrode, you now have multiple vectors, and we will put the vectors together in a matrix.
+
+Suppose that, for an EEG system with output resolution of 250Hz, you have 3 electrodes, and you're analyzing one second
+of data from this system.  Since our system is 250Hz, or 250 readings per second, this means we have 250 readings x
+3 channels.  By using a matrix, this will be represented as a grid. We have two choices:
+
+##### 250 x 3 matrix (example 1)
+|time |0 | 1| 2| 3| 4| 5| 6| 7| 8| 9|...|
+|-----|--|--|--|--|--|--|--|--|--|--|---|
+|Fz   |0.1|0.2|0.3|0.4|0.5|0.6|0.7|0.8|0.9|1.0|...|
+|C3   |0.0|0.2|0.4|0.6|0.8|1.0|1.2|1.4|1.6|1.8|...|
+|C4   |0.3|0.6|0.9|1.2|1.5|1.8|2.1|2.4|2.7|3.0|...|
+
+
+##### 3 x 250 matrix (example 2)
+|time |Fz | C3| C4|
+|-----|---|---|---|
+|0    |0.1|0.0|0.3|
+|1    |0.2|0.2|1.6|
+|2    |0.3|0.4|0.9|
+|3    |0.4|0.6|1.2|
+|4    |0.5|0.8|1.5|
+|5    |0.6|1.0|1.8|
+|6    |0.7|1.2|2.1|
+|7    |0.8|1.4|2.4|
+|8    |0.9|1.6|2.7|
+|9    |1.0|1.8|3.0|
+|...  |...|...|...|
+
+
+The choice of whether to represent electrode channel data vectors as rows (example 1), or as columns (example 2), is 
+debatable.  Our convention in CloudbrainAnalysis will be to use a 250 columns and 3 rows (example 1).  Each row will 
+represent all the datapoints of a single electrode channel.  Each column will represent data across all channels at one 
+point in time.
+
+One justification for this is simply that this is intuitively how we tend to think of time series data, with the
+horizontal axis of a graph meaning "time".  Additionally, this is a similar convention to what is used in scikit-learn
+and MNE packages.  
+
+It has been suggested that there is performance optimization which can be realized by performing calculations on 
+elements which are contiguous in memory.  You can read more about that in the section "Note on array order" here: 
+http://scikit-image.org/docs/dev/user_guide/numpy_images.html
+
+
 ### To Do
 - establish a convention for modules to specify what kinds of visualization they are compatible with.
 - establish a convention whereby, if any module in configuration has specified a visualization component, the
