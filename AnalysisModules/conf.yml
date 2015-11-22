@@ -12,7 +12,7 @@ ModuleDownsample:
   input_feature: "eeg"
   output_feature: "eegd"
   parameters:
-    debug: False
+    debug: True
 
 ModuleWindows:
   input_feature: "eegd"

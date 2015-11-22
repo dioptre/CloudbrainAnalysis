@@ -146,7 +146,7 @@ of data from this system.  Since our system is 250Hz, or 250 readings per second
 |time |Fz | C3| C4|
 |-----|---|---|---|
 |0    |0.1|0.0|0.3|
-|1    |0.2|0.2|1.6|
+|1    |0.2|0.2|0.6|
 |2    |0.3|0.4|0.9|
 |3    |0.4|0.6|1.2|
 |4    |0.5|0.8|1.5|
@@ -171,6 +171,70 @@ It has been suggested that there is performance optimization which can be realiz
 elements which are contiguous in memory.  You can read more about that in the section "Note on array order" here: 
 http://scikit-image.org/docs/dev/user_guide/numpy_images.html
 
+## Matrix Operations
+Here's a quick primer on numpy's matrix for those who might be new to python's way of handling matrices.
+
+The np.matrix() object can be thought of as a wrapper around the basic np.array() (type='ndarray').  
+A matrix is just an array of arrays:
+```
+a = np.array([[1,2,3,4], [5,6,7,8], [9,10,11,12]])
+[[ 1  2  3  4]
+ [ 5  6  7  8]
+ [ 9 10 11 12]]
+```
+
+By using the matrix object, and not just ndarray, we get access to some useful matrix math functions.  However, just 
+keep in mind that the actual data is contained internally in a np.array().  You can always access this by the A property
+of the matrix.  Or, if you just want to print string, just print the matrix directly.
+```
+window = np.matrix(np.random.rand(3,6))
+foo = window.A
+print foo
+print window
+```
+
+Once you have a matrix, you can access specific channels and slices of data using matrix notation. This may be 
+familiar to anyone who has used Matlab.
+
+```
+# matrix of random values
+# 3 EEG channels (rows)
+# 6 timepoints (columns)
+window = np.matrix(np.random.rand(3,6))
+print window
+#
+#[[ 0.01252493  0.76089514  0.90413342  0.14933877  0.95271887  0.62169743]
+# [ 0.4461164   0.67827997  0.47488861  0.66459204  0.96701774  0.65374514]
+# [ 0.22725775  0.35366613  0.04000928  0.362111    0.49086496  0.04899759]]
+#
+print "vector representing all channels' data at timepoint 5:"
+print window[:,4]
+#
+#[[ 0.95271887]
+# [ 0.96701774]
+# [ 0.49086496]]
+#
+print "vector representing only channel 2 data for the entire time series in the window:"
+print window[1,:]
+#
+#[[ 0.4461164   0.67827997  0.47488861  0.66459204  0.96701774  0.65374514]]
+#
+print "vector representing only channel 2 data between timepoint 3 and 5 (notice that range includes starting point 3, but not endpoint 5, so by saying [between 3 and 5], you're getting [3,4]):"
+print window[1,2:4]
+#
+#[[ 0.47488861  0.66459204]]
+#
+print "vector representing only channel 2 data from timepoint 3 to the end (including starting point 3):"
+print window[1,2:]
+#
+#[[ 0.47488861  0.66459204  0.96701774  0.65374514]]
+#
+print "vector representing only channel 2 data from beginning to timepoint 3 (not including endpoint 3):"
+print window[1,:2]
+#
+#[[ 0.4461164   0.67827997]]
+#
+```
 
 ### To Do
 - establish a convention for modules to specify what kinds of visualization they are compatible with.
