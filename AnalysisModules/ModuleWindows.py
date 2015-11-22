@@ -48,8 +48,10 @@ class ModuleWindows(ModuleAbstract):
             print self.LOGNAME + "Window overlap:" + str(self.window_overlap)
 
         # create a blank matrix of zeros as a starting window
-        self.window = np.zeros((self.samples_per_window, self.num_channels))
-        self.nextWindowSegment = np.zeros((self.window_overlap, self.num_channels))
+        self.window = np.matrix(np.zeros((self.num_channels, self.samples_per_window)))
+        # create a blank matrix of zeros as the rolling overlap window
+        self.nextWindowSegment = np.matrix(np.zeros((self.num_channels, self.window_overlap)))
+        # deifne range based on overlap length, this will be used in loop below
         self.trimOldWindowDataIndexRange = np.arange(self.window_overlap)
 
         self.plotActive = True
@@ -66,54 +68,69 @@ class ModuleWindows(ModuleAbstract):
         Semantically, window = epoch = trial = matrix
         As matrix, window has dimensions [rows, cols] - standard notation for numpy, matlab, etc
 
-        The row captures datum per second
-        The column captures datum per channel. Column can represent one channel as a single time-series vector.
+        Each row vector captures data per EEG channel
+        Each column vector captures data per time-point
 
-        If this were plotted as a time series graph,
-        rows = x-axis (time)
-        each col = y-axis (voltage)
+        self.window is the main window
+        # vector representing only channel 2 data for the entire time series in the window:
+        self.window[1,:]
+        # vector representing all channels' data at timepoint 10:
+        self.window[:,9]
+        # vector representing only channel 2 data between time 10 and 50:
+        self.window[1,9:50]]
+        # (note that range endpoint is not included in slice, so that's why it's 50 and not 49)
+
+        Visualization
         You could use this matrix to plot n-channels number of streaming graphs,
         or you could superimpose n-channels number of lines on the same streaming graph
         """
 
         # begin looping through the buffer coming in from the message queue subscriber
+        # because of cloudbrain connector publisher convention, this is assumed to be in json format
+        # note: when using pika, after retrieving json, keys are always in utf-8 format
         buffer_content = json.loads(body)
 
         for record in buffer_content:
 
             # get the next data out of the buffer as an array indexed by column names
+            # arr = array of all column names
             arr = np.array([record.get(column_name, None) for column_name in self.headers])
-
             if self.windowFull is False:
                 # window is not full yet
                 # just keep collecting data into main window until we have filled up the first one
-                # i.e. write next row in matrix
-                self.window[self.fill_counter, :] = arr[1:len(self.headers)] # note timestamp is not used (i.e. arr[0])
+                # i.e. write next data column in matrix
+                # note: timestamp is not used (i.e. we skip arr[0])
+                # note: we have use transpose (T) property to get the horizontal array coming from rabbitmq into a
+                # vertical column for use in our matrix
+                self.window[:, self.fill_counter] = arr[1:len(self.headers)][np.newaxis].T
+
                 self.fill_counter = self.fill_counter + 1
                 #print "still filling up first window: " + str(self.fill_counter) + " rows so far"
 
-                # once we've reached one full window length, set the flag
+                # once we've reached one full window length, set the flag windowFull to true so we can begin rolling
                 if self.fill_counter == self.samples_per_window:
                     self.windowFull = True
                     if self.debug:
-                        print self.LOGNAME + "Received " + str(self.samples_per_window) + " lines:\n"
+                        print self.LOGNAME + "Received first window of " + str(self.samples_per_window) + " samples:\n"
 
             else:
                 # accumulate every new data into next window segment
-                self.nextWindowSegment[self.rolling_counter, :] = arr[1:len(self.headers)]
-                # not yet, just keep incrementing rolling counter
+                # note: we have use transpose (T) property to get the horizontal array coming from rabbitmq into a
+                # vertical column for use in our matrix
+                self.nextWindowSegment[:, self.rolling_counter] = arr[1:len(self.headers)][np.newaxis].T
+                # keep incrementing rolling counter
                 self.rolling_counter = self.rolling_counter + 1
 
                 # check if we have reached next window yet
                 if(self.rolling_counter == self.window_overlap):
                     # reached overlap, time to roll over to next window
 
-                    # Step 1: trim off old data rows from the back
-                    self.window = np.delete(self.window, self.trimOldWindowDataIndexRange, 0)
-                    # Step 2: append next window segment onto the front
-                    self.window = np.vstack((self.window, self.nextWindowSegment))
+                    # Step 1: trim off old data columns from the beginning of window
+                    self.window = np.delete(self.window, self.trimOldWindowDataIndexRange, 1)
+                    # Step 2: append next window segment columns onto the front (right) of window
+                    self.window = np.hstack((self.window, self.nextWindowSegment))
 
-                    # since we've got a new window, time to publish it
+                    # we've got a new window to deliver, time to publish it
                     windowJson = MatrixToBuffer(self.window)
                     self.write(self.output_feature, windowJson)
 

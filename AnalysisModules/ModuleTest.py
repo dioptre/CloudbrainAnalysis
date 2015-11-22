@@ -1,18 +1,24 @@
 __author__ = 'odrulea'
-import ModuleAbstract
+from AnalysisModules.ModuleAbstract import ModuleAbstract
 from lib.utils import BufferToMatrix
 
 """
 This module does nothing.  Meant to be used as a blank template to start new modules from.
 Shows you the basic 2 methods to implement: setup() and consume()
+If you are publishing an output, when you are ready to send it to mq, use self.write() at the end of consume()
 """
-class ModuleTest(ModuleAbstract.ModuleAbstract):
+class ModuleTest(ModuleAbstract):
 
     MODULE_NAME = "Test Module"
+
+    # LOGNAME is a prefix used to prepaend to debugging output statements, helps to disambiguate messages since the
+    # modules run on separate threads
+    LOGNAME = "[Analysis Service: Windows Module] "
+
     # __init__ is handled by parent ModuleAbstract
 
     def setup(self):
-        ModuleAbstract.ModuleAbstract.setup(self)
+        ModuleAbstract.setup(self)
         if self.debug:
             print "[" + self.MODULE_NAME + "] setup"
 
@@ -35,8 +41,3 @@ class ModuleTest(ModuleAbstract.ModuleAbstract):
         #     output = record
         #     if self.debug:
         #         print output
-
-
-
-
-
