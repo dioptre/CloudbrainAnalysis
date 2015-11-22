@@ -41,30 +41,3 @@ class ModuleTest(ModuleAbstract):
         #     output = record
         #     if self.debug:
         #         print output
-
-
-
-
-
-
-
-
-
-
-
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-"""
-
-
