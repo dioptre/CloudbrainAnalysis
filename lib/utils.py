@@ -29,11 +29,14 @@ def BufferToMatrix(jsonDump):
     :param jsonDump:
     :return:
     """
-    loaded = json.loads(jsonDump)
-    dtype = np.dtype(loaded[0])
-    arr = np.frombuffer(base64.decodestring(loaded[1]),dtype)
-    if len(loaded) > 2:
-        return arr.reshape(loaded[2])
+    # if incoming has not yet been json decoded, do it
+    if type(jsonDump) == str:
+        jsonDump = json.loads(jsonDump)
+    # get type
+    dtype = np.dtype(jsonDump[0])
+    arr = np.frombuffer(base64.decodestring(jsonDump[1]),dtype)
+    if len(jsonDump) > 2:
+        return arr.reshape(jsonDump[2])
     return arr
 
 def matrixToCoords(input, typeSafe=False):

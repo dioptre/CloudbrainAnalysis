@@ -13,11 +13,6 @@ The current implementation is a "rolling" window of fixed width.  This is typica
 usage of BCI.  This type of window is characterized by a fixed width, and an overlap parameter. The idea is that, as
 live data is coming in, you are constantly checking it against a trained model. This could also be used as a sort of
 simple buffering on raw data, if you set the overlap to 0 for example.
-
-This module will need to be expanded (or implemented in a similar, separate module) to perform the kind of windowing
-used in training phase.  In that scenario, the goal is not to be constantly checking, but rather to collect windows
-in which every datum belongs to the same class label.  Such a module would have to use an input stream containing
-class label information as well as an EEG input.
 """
 
 class ModuleWindows(ModuleAbstract):
@@ -132,7 +127,7 @@ class ModuleWindows(ModuleAbstract):
 
                     # we've got a new window to deliver, time to publish it
                     windowJson = MatrixToBuffer(self.window)
-                    self.write(self.output_feature, windowJson)
+                    self.write('data', windowJson)
 
                     # since we've rolled to a new window, time to reset the rolling counter
                     self.rolling_counter = 0

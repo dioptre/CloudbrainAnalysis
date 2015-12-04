@@ -13,7 +13,6 @@ import sys
 _SUPPORTED_DEVICES = get_supported_devices()
 _SUPPORTED_METRICS = get_supported_metrics()
 
-
 class AnalysisService(object):
     """
     Subscribes and writes data to a file
@@ -31,12 +30,16 @@ class AnalysisService(object):
         self.device_name = device_name
         self.device_id = device_id
         self.rabbitmq_address = rabbitmq_address
+        self.debug = False
 
         # local relative filepath, used to load config file and to dynamically load classes
         self.location = os.path.realpath( os.path.join(os.getcwd(), os.path.dirname(__file__)) )
 
         # this will hold the config yaml info as an array
         self.conf = None
+
+        # an intenral registry of all module threads running
+        self.modules = {}
 
         # setup more vars
         self.setup()
@@ -49,67 +52,66 @@ class AnalysisService(object):
         # set local conf property from the yaml config file
         self.conf = yaml.load(stream)
 
+
     def start(self):
 
         print self.LOGNAME + "Collecting data ... Ctl-C to stop."
+
         # loop through each module and start them
-        # passing the output from one to the input of the other
-        for moduleName,settings in self.conf.iteritems():
-
-            # input_feature is required
-            if 'input_feature' in settings:
-                input_feature = settings['input_feature']
-            else:
-                raise ValueError(self.LOGNAME + "Required input_feature missing for Module: " + moduleName)
-
-            # output_feature (optional)
-            if 'output_feature' in settings:
-                output_feature = settings['output_feature']
-            else:
-                output_feature = None
-
-            # module parameters (optional)
-            if 'parameters' in settings:
-                module_params = settings['parameters']
-            else:
-                module_params = None
-
-            self.launchModule(moduleName, self.device_name, self.device_id, self.rabbitmq_address, input_feature, output_feature, module_params)
+        # passing the settings from conf file to each
+        if "modules" in self.conf and len(self.conf["modules"]):
+            for module_conf in self.conf["modules"]:
+                # start each module
+                self.launchModule(module_conf, self.device_name, self.device_id, self.rabbitmq_address)
+            if self.debug:
+                print "-------------------------------------\n\n"
+        else:
+            print self.LOGNAME + "No modules defined for analysis"
 
         # this is here so that child threads can run
         while True:
             time.sleep(1)
 
-    def launchModule(self, moduleName, device_name, device_id, rabbitmq_address, input_feature, output_feature, module_params):
-        if 'debug' in module_params and module_params['debug'] == True:
-            #print module_params['debug'] == True
-            # debug
-            print self.LOGNAME + "\n" \
-                                 "-------------------------------------\n" \
-                                 "Module: " + moduleName + "\n" \
-                                "in: " + input_feature + "\n" \
-                                "out: " + str(output_feature) + "\n" \
-                                "device_name: " + device_name + "\n" \
-                                "device_id: " + device_id + "\n" \
-                                "rabbitmq_address: " + rabbitmq_address + "\n" \
-                                "module_params: " + str(module_params) + "\n" \
-                                "-------------------------------------"
+    def launchModule(self, module_conf, device_name, device_id, rabbitmq_address):
 
+        # module classname is required
+        if 'class' in module_conf:
+            moduleClassName = module_conf['class']
+        else:
+            raise ValueError(self.LOGNAME + "ERROR: class not defined for module: " + str(module_conf))
+
+        # get module parameters for any operation at the service level (optional)
+        if 'parameters' in module_conf:
+            module_params = module_conf['parameters']
+            # debug output
+            if 'debug' in module_params and module_params['debug'] == True:
+                # if any of the modules have debug turned on, turn on the service debug too
+                self.debug = True
+                print "-------------------------------------\n" \
+                     "" + self.LOGNAME + "STARTING...\n" \
+                     "Module: " + moduleClassName + "\n" \
+                    "Configuration: " + str(module_conf) + "\n"
+
+        module_id = None
+        if 'id' in module_conf:
+            module_id = module_conf['id']
 
         # dynamically import the module
-        module_filepath = os.path.join(self.location, moduleName+'.py')
-        py_mod = imp.load_source(moduleName, module_filepath)
+        module_filepath = os.path.join(self.location, moduleClassName+'.py')
+        py_mod = imp.load_source(moduleClassName, module_filepath)
 
         # instantiate the imported module
-        moduleInstance = getattr(py_mod, moduleName)(device_name=device_name, device_id=device_id,
-                                                     rabbitmq_address=rabbitmq_address, input_feature=input_feature,
-                                                     output_feature=output_feature, module_params=module_params)
+        moduleInstance = getattr(py_mod, moduleClassName)(device_name=device_name, device_id=device_id,
+                                                     rabbitmq_address=rabbitmq_address, module_conf=module_conf,
+                                                     global_conf=self.conf)
 
 
         # all modules should implement start() and stop()
         thread = threading.Thread(target=moduleInstance.start)
         thread.daemon = True
-        thread.start()
+        # assign the thread to internal registry and start it up
+        self.modules[module_id] = thread
+        self.modules[module_id].start()
 
 
         #moduleInstance.stop()
