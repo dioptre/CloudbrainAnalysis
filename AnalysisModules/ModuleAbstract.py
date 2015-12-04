@@ -1,6 +1,7 @@
 __author__ = 'odrulea'
 from abc import ABCMeta, abstractmethod
-from cloudbrain.subscribers.PikaSubscriber import PikaSubscriber
+from lib.PikaSubscriber import PikaSubscriber
+#from cloudbrain.subscribers.PikaSubscriber import PikaSubscriber
 from cloudbrain.publishers.PikaPublisher import PikaPublisher
 from cloudbrain.utils.metadata_info import get_num_channels
 
@@ -9,15 +10,25 @@ class ModuleAbstract(object):
 
     MODULE_NAME = "Abstract"
 
-    def __init__(self, device_name, device_id, rabbitmq_address, input_feature, output_feature=None, module_params = None):
+    # simple JSON message and corresponding data types
+    MESSAGE_TYPE_JSON         = "JSON"
+    # base64 encoded matrix messages and corresponding data types
+    MESSAGE_TYPE_MATRIX       = "MATRIX"
+
+    # data types
+    DATA_TYPE_CLASS_LABELS    = "CLASS_LABELS"
+    DATA_TYPE_RAW_DATA        = "RAW_DATA"
+    DATA_TYPE_RAW_POINTS      = "RAW_POINTS"
+    DATA_TYPE_LABELED_DATA    = "LABELED_DATA"
+    DATA_TYPE_LABELED_POINTS  = "LABELED_POINTS"
+
+    def __init__(self, device_name, device_id, rabbitmq_address, module_conf, global_conf):
         """
         global constructor for all module classes, not meant to be overwritten by subclasses
         :param device_name:
         :param device_id:
         :param rabbitmq_address:
-        :param input_feature:
-        :param output_feature:
-        :param module_params:
+        :param moduleConf:
         :return:
         """
 
@@ -25,14 +36,33 @@ class ModuleAbstract(object):
         self.device_name = device_name
         self.device_id = device_id
         self.rabbitmq_address = rabbitmq_address
-        self.input_feature = input_feature
-        self.output_feature = output_feature
-        self.module_params = module_params # subclasses can set further from this in setup()
+        self.module_conf = module_conf
+        self.global_conf = global_conf
 
-        self.subscribers = {}
+        # id
+        self.id = None
+        if 'id' in self.module_conf:
+            self.id = self.module_conf['id']
+
+        # inputs (optional)
+        self.inputs = {}
+        if 'inputs' in self.module_conf:
+            self.inputs = self.module_conf['inputs']
+
+        # outputs (optional)
+        self.outputs = {}
+        if 'outputs' in self.module_conf:
+            self.outputs = self.module_conf['outputs']
+
+        # module parameters (optional)
+        self.module_params = None
+        if 'parameters' in self.module_conf:
+            self.module_params = self.module_conf['parameters']
+
+        self.subscriber = None
         self.publishers = {}
         self.output_buffers = {}
-        self.buffer_size = 100
+
 
         self.num_channels = 0
         self.headers = []
@@ -42,7 +72,10 @@ class ModuleAbstract(object):
         if 'debug' in self.module_params:
             if self.module_params['debug'] is True:
                 self.debug = True
-
+                # if len(self.inputs):
+                #     print "inputs:" + str(self.inputs)
+                # if len(self.outputs):
+                #     print "outputs:" + str(self.outputs)
 
         # call setup()
         self.setup()
@@ -59,23 +92,42 @@ class ModuleAbstract(object):
         self.num_channels = get_num_channels(self.device_name,"eeg")
         self.headers = ['timestamp'] + ['channel_%s' % i for i in xrange(self.num_channels)]
 
-        # if input, instantiate subscribers
-        if self.input_feature is not None:
-            self.subscribers[self.input_feature] = PikaSubscriber(device_name=self.device_name,
-                                                         device_id=self.device_id,
-                                                         rabbitmq_address=self.rabbitmq_address,
-                                                         metric_name=self.input_feature)
+        # if input, instantiate subscriber
+        if len(self.inputs):
+            # there is only one subscriber to handle all inputs
+            self.subscriber = PikaSubscriber(device_name=self.device_name,
+                                                     device_id=self.device_id,
+                                                     rabbitmq_address=self.rabbitmq_address,
+                                                     metrics=self.inputs)
 
         # if output, instantiate publishers
-        if self.output_feature is not None:
-            self.publishers[self.output_feature] = PikaPublisher(
-                                                        device_name=self.device_name,
-                                                        device_id=self.device_id,
-                                                        rabbitmq_address=self.rabbitmq_address,
-                                                        metric_name=self.output_feature)
+        if len(self.outputs):
 
-            # also instantiate an output buffer for each publisher
-            self.output_buffers[self.output_feature] = []
+            for output_key, output in self.outputs.iteritems():
+                # each output has a specific key, assign a placeholder for it in publishers collection
+                self.publishers[output_key] = {}
+                self.output_buffers[output_key] = {}
+
+                # each output has a parameter called "message_queues"
+                # this can be a single value or a list, i.e. "foo" or ["foo1","foo2"]
+                # most of the time, this will be a single string
+                # an example of where an output might use more than one message_queue might be:
+                # one output goes to visualization, while a second copy continues down the processing chain
+
+                # for convenience, convert the "message_queues" parameter to list if it isn't already
+                if type(output['message_queues']) != list:
+                    output['message_queues'] =  [output['message_queues']]
+
+                # there is one publisher per output
+                for message_queue_name in output['message_queues']:
+                    self.publishers[output_key][message_queue_name] = PikaPublisher(
+                                                                device_name=self.device_name,
+                                                                device_id=self.device_id,
+                                                                rabbitmq_address=self.rabbitmq_address,
+                                                                metric_name=message_queue_name)
+
+                    # also instantiate an output buffer for each publisher
+                    self.output_buffers[output_key][message_queue_name] = []
 
 
     def start(self):
@@ -83,23 +135,29 @@ class ModuleAbstract(object):
         Consume and write data to file
         :return:
         """
+
         # unleash the hounds!
-        if self.publishers:
+        if len(self.publishers):
             if self.debug:
                 print "[" + self.MODULE_NAME + "] starting publishers"
-            for publisherKey, publisher in self.publishers.iteritems():
-                publisher.connect()
-                if self.debug:
-                    print "[" + self.MODULE_NAME + "] publisher " + publisherKey + " connected"
+
+            for output_key, output_message_queues in self.publishers.iteritems():
+                for output_message_queue, publisher in output_message_queues.iteritems():
+                    publisher.connect()
+                    if self.debug:
+                        print "[" + self.MODULE_NAME + "] publisher [" + output_key + "][" + output_message_queue + "] started streaming"
+
+            if self.subscriber is None:
+                # if there are publishers but no subscribers defined, this is a generator type module
+                # so we need some way to start publishing messages without depending on the consume() method
+                self.generate()
 
         # it begins!
-        if self.debug:
+        if self.subscriber and self.debug:
             print "[" + self.MODULE_NAME + "] starting subscribers"
-        for subscriberKey, subscriber in self.subscribers.iteritems():
-            subscriber.connect()
-            subscriber.consume_messages(self.consume)
-            if self.debug:
-                print "[" + self.MODULE_NAME + "] subscriber " + subscriberKey + " connected and started"
+
+        self.subscriber.connect()
+        self.subscriber.consume_messages(self.consume)
 
         return
 
@@ -111,6 +169,12 @@ class ModuleAbstract(object):
         print "Abstract: stopped"
         self.subscriber.disconnect()
 
+    def generate(self):
+        """
+        generate to the message queue
+        :return:
+        """
+        print "Abstract: generate"
 
     def consume(self, ch, method, properties, body):
         """
@@ -119,13 +183,19 @@ class ModuleAbstract(object):
         """
         print "Abstract: consume"
 
-    def write(self, metric_name, datum):
+    def write(self, output_key, datum):
         """
-        add one data point to the buffer
+        deliver one message (buffered)
         """
-        self.output_buffers[metric_name].append(datum)
+        for message_queue_name in self.output_buffers[output_key].keys():
+            # add one data point to each buffer defined for this output
+            self.output_buffers[output_key][message_queue_name].append(datum)
 
-        # if buffer is full, publish it, using appropriate publisher
-        if len(self.output_buffers[metric_name]) >= self.buffer_size:
-            self.publishers[metric_name].publish(self.output_buffers[metric_name])
-            self.output_buffers[metric_name] = []
+            # if buffer is full, publish it, using appropriate publisher
+            if len(self.output_buffers[output_key][message_queue_name]) >= self.outputs[output_key]['buffer_size']:
+                # publishing means deliver the buffer (which is now full) to the publisher
+                # this sends the entire buffer onto message queue
+                self.publishers[output_key][message_queue_name].publish(self.output_buffers[output_key][message_queue_name])
+                # and then reset the buffer
+                self.output_buffers[output_key][message_queue_name] = []
+
